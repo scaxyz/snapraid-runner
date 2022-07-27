@@ -25,6 +25,7 @@ It supports Windows, Linux and macOS and requires at least python3.7.
 * Can create a size-limited rotated logfile.
 * Can send notification emails after each run or only for failures.
 * Can run `scrub` after `sync`
+* Can send notifications per discord including the log file after each run or only for failures.
 
 ## Scope of this project and contributions
 Snapraid-runner is supposed to be a small tool with clear focus. It should not
