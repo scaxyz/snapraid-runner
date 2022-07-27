@@ -48,3 +48,8 @@ older-than = 10
 enabled = false
 ; add webhook URL here
 webhook = 
+username = 
+; set url for the avatar displayed in discord
+avatar-url = 
+; when to emebed the log FILE, comma-separated list of [success, error]
+send-logfile-on = success,error

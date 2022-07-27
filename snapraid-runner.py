@@ -72,26 +72,61 @@ def send_discord(success):
     url = config['discord']['webhook']
 
     if success:
-        body = "SnapRAID job completed successfully:\n"
+        body = "SnapRAID job completed successfully"
     else:
-        body = "Error during SnapRAID job:\n"
+        body = "Error during SnapRAID job"
 
     log = email_log.getvalue()
 
-    if len(log) > 2000:
-        log = log[:1800] + '--------- LOG WAS TOO BIG ----------'
-
-    body += f"```\n{log}\n```"
-
+    
     payload = {
         'username': 'SnapRAID Runner',
         'content': body
     }
 
-    params = json.dumps(payload).encode('utf8')
+    if "username" in config["discord"] and config["discord"]["username"] != "":
+        payload["username"]=config["discord"]["username"]
+    if "avatar-url" in config["discord"] and config["discord"]["avatar-url"] != "":
+        payload["avatar_url"] = config["discord"]["avatar-url"] 
+ 
+
+    send_logfile = ("error", "success")[success] in config["discord"]["send-logfile-on"]
+    
+    contentType = 'application/json'
+    if send_logfile:
+        payload["content"] = body + "."
+        contentType = "multipart/form-data; boundary=---011000010111000001101001"
+        params =  "-----011000010111000001101001\r\nContent-Disposition: form-data; name=\"log\"; filename=\"log.txt\"\r\nContent-Type: text/plain\r\n\r\n" \
+        + log \
+        + "\r\n-----011000010111000001101001\r\nContent-Disposition: form-data; name=\"payload_json\"\r\n\r\n" \
+        + json.dumps(payload) \
+        + "\r\n-----011000010111000001101001--\r\n"
+    else:
+
+        maxsize = 1800
+        if maxsize and len(log) > maxsize:
+            cut_lines = log.count("\n", maxsize // 2, -maxsize // 2)
+            log = (
+                "NOTE: Log was too big for discord and was shortened\n\n" +
+                log[:maxsize // 2] +
+                "[...]\n\n\n --- LOG WAS TOO BIG - {} LINES REMOVED --\n\n\n[...]".format(
+                    cut_lines) +
+                log[-maxsize // 2:])
+
+        body += f":\n```\n{log}\n```"
+        payload["content"] = body
+        params = json.dumps(payload)
+
+        
+
+
+   
+    params = params.encode('utf8')
+
     headers = {
-        'content-type': 'application/json',
-        'user-agent': 'snapraid-runner/0.1'
+        'Content-Type':contentType,
+        'user-agent': 'snapraid-runner/0.1',
+        "accept": "*/*"
     }
 
     try:
@@ -99,8 +134,10 @@ def send_discord(success):
                                      headers=headers)
         res = urllib.request.urlopen(req, data=params)
         res.read().decode('utf8')
+        
     except Exception as e:
         print(e)
+        raise e
 
 
 def send_email(success):
@@ -159,11 +196,13 @@ def finish(is_success):
         try:
             if config['smtp']['enabled']:
                 send_email(is_success)
-
+        except Exception:
+            logging.exception("Failed to send email")
+        try: 
             if config['discord']['enabled']:
                 send_discord(is_success)
         except Exception:
-            logging.exception("Failed to send email")
+            logging.exception("Failed to send discord webhook")
     if is_success:
         logging.info("Run finished successfully")
     else:
