@@ -15,7 +15,7 @@ from io import StringIO
 # Global variables
 config = None
 email_log = None
-
+discord_log = None
 
 def tee_log(infile, out_lines, log_level):
     """
@@ -192,17 +192,19 @@ def send_email(success):
 
 
 def finish(is_success):
+    if ("error", "success")[is_success] in config["discord"]["sendon"]:
+         try: 
+            if config['discord']['enabled']:
+                send_discord(is_success)
+        except Exception:
+            logging.exception("Failed to send discord webhook")
+
     if ("error", "success")[is_success] in config["email"]["sendon"]:
         try:
             if config['smtp']['enabled']:
                 send_email(is_success)
         except Exception:
             logging.exception("Failed to send email")
-        try: 
-            if config['discord']['enabled']:
-                send_discord(is_success)
-        except Exception:
-            logging.exception("Failed to send discord webhook")
     if is_success:
         logging.info("Run finished successfully")
     else:
@@ -282,6 +284,16 @@ def setup_logger():
             # Don't send programm stdout in email
             email_logger.setLevel(logging.INFO)
         root_logger.addHandler(email_logger)
+    
+    if config["discord"]["sendon"]:
+        global discord_log
+        discord_log = StringIO()
+        discord_logger = logging.StreamHandler(discord_log)
+        discord_logger.setFormatter(log_format)
+        if config["discord"]["short"]:
+            # Don't send programm stdout in email
+            discord_logger.setLevel(logging.INFO)
+        root_logger.addHandler(discord_logger)
 
 
 def main():

@@ -45,6 +45,8 @@ plan = 12
 older-than = 10
 
 [discord]
+; when to send via webhook, comma-separated list of [success, error]
+sendon = success,error
 enabled = false
 ; add webhook URL here
 webhook = 
@@ -53,3 +55,5 @@ username =
 avatar-url = 
 ; when to emebed the log FILE, comma-separated list of [success, error]
 send-logfile-on = success,error
+; set to false to get full programm output via email
+short = true
